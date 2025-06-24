@@ -5,12 +5,11 @@ import pandas as pd
 import time
 from datetime import datetime
 from oauth2client.service_account import ServiceAccountCredentials
-
-# --- CONFIGURACIÓN DE GOOGLE SHEETS ---
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 import json
 from io import StringIO
 
+# --- CONFIGURACIÓN DE GOOGLE SHEETS ---
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 json_key = st.secrets["gcp_service_account"]
 creds_dict = json.loads(json_key)
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
@@ -126,7 +125,7 @@ def main():
 
     crear_bd()  # carga inicial desde Google Sheets
 
-    menu = st.sidebar.radio("Menú", ["Dashboard", "Consulta de Cursos", "Consulta de Alumnos", "Módulo Matrículas", "Módulo Alumnos", "Módulo Cursos"])
+    menu = st.sidebar.radio("Menú", ["Dashboard", "Consulta de Cursos", "Consulta de Alumnos", "Consulta por Teléfono", "Módulo Matrículas", "Módulo Alumnos", "Módulo Cursos"])
 
     conn = sqlite3.connect('inscripciones.db')
 
@@ -175,6 +174,21 @@ def main():
             '''
             df = pd.read_sql_query(query, conn, params=(id_alumno,))
             st.write(f"### Cursos matriculados por: {alumno_sel}")
+            st.dataframe(df)
+
+    elif menu == "Consulta por Teléfono":
+        st.subheader("📞 Consulta por Teléfono")
+        celular_input = st.text_input("Ingrese el número de teléfono (parcial o completo):")
+        if celular_input:
+            query = '''
+                SELECT a.nombre, a.apellido, a.correo, a.celular, m.fecha, c.curso
+                FROM alumno a
+                JOIN matricula m ON a.id = m.id_alumno
+                JOIN curso c ON m.id_curso = c.id
+                WHERE a.celular LIKE ?
+            '''
+            df = pd.read_sql_query(query, conn, params=(f"%{celular_input}%",))
+            st.write(f"Resultados para: {celular_input}")
             st.dataframe(df)
 
     elif menu == "Módulo Matrículas":
